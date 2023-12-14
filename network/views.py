@@ -4,7 +4,24 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 
-from .models import User
+from django import forms
+
+from .models import User, Post
+from django.contrib.auth.decorators import login_required
+
+
+class NewPost(forms.ModelForm):
+    class Meta:
+        model = Post
+        exclude = ["created_by", "created_date"]
+        # Override the widget for the 'content' field
+        widgets = {
+            'post': forms.Textarea(attrs={'cols': 80, 'rows': 20}),
+        }
+        # Hide the label for the 'content' field
+        labels = {
+            'post': '',
+    }
 
 
 def index(request):
@@ -22,7 +39,7 @@ def login_view(request):
         # Check if authentication successful
         if user is not None:
             login(request, user)
-            return HttpResponseRedirect(reverse("index"))
+            return HttpResponseRedirect(reverse("network:index"))
         else:
             return render(request, "network/login.html", {
                 "message": "Invalid username and/or password."
@@ -33,7 +50,7 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    return HttpResponseRedirect(reverse("index"))
+    return HttpResponseRedirect(reverse("network:index"))
 
 
 def register(request):
@@ -58,6 +75,24 @@ def register(request):
                 "message": "Username already taken."
             })
         login(request, user)
-        return HttpResponseRedirect(reverse("index"))
+        return HttpResponseRedirect(reverse("network:index"))
     else:
         return render(request, "network/register.html")
+
+
+def all_posts(request):
+    posts = Post.objects.all()
+    return render(request, 'network/allposts.html', {'posts': posts})
+
+@login_required
+def create_post(request):
+    if request.method== "POST":
+        form = NewPost(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.created_by = request.user
+            post.save()
+            return  HttpResponseRedirect(reverse("network:allposts", args=(post.id,)))
+        else:
+            return render(request, "network/create_post.html", {"form": form})
+    return render(request, "network/create_post.html", {"form": NewPost()})

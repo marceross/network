@@ -1,0 +1,31 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+
+
+<div>
+    <h3>New Post</h3>
+    <textarea name="" id="" cols="100" rows="5"> Show text area from the form in views {{ form }} </textarea>
+    <button type="submit" id="addpost" class="btn btn-primary">Post</button>
+  </div>
+
+<!--
+  <form action="{% url 'network:create' %}" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="SAVE">
+</form>
+-->
+
+
+<h2>All Posts</h2>
+<ul>
+    {% for post in posts %}
+    <div style="border: 1px solid beige;">
+        <li>{{ post.post }}</li>
+        <li>{{ post.created_by }}</li>
+        <li>{{ post.created_date }}</li>
+    </div>
+    {% endfor %}
+</ul>
+{% endblock %}
