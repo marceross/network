@@ -19,6 +19,7 @@ class Post(models.Model):
     post = models.CharField(max_length=280, null=True, blank=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     created_date = models.DateTimeField(auto_now_add=True)
+    likes = models.ManyToManyField(User, blank=True, related_name="liked_user", verbose_name="Likes")
 
     def __str__(self):
         return f"{self.post} by {self.created_by} at {self.created_date}"

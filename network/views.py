@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 class NewPost(forms.ModelForm):
     class Meta:
         model = Post
-        exclude = ["created_by", "created_date"]
+        exclude = ["created_by", "created_date", "likes"]
         # Override the widget for the 'content' field
         widgets = {
             'post': forms.Textarea(attrs={'cols': 80, 'rows': 20}),
@@ -81,7 +81,7 @@ def register(request):
 
 
 def all_posts(request):
-    posts = Post.objects.all()
+    posts = Post.objects.order_by("-created_date").all()
     return render(request, 'network/allposts.html', {'posts': posts})
 
 @login_required
@@ -92,7 +92,7 @@ def create_post(request):
             post = form.save(commit=False)
             post.created_by = request.user
             post.save()
-            return  HttpResponseRedirect(reverse("network:allposts", args=(post.id,)))
+            return  HttpResponseRedirect(reverse("network:allposts"))
         else:
             return render(request, "network/create_post.html", {"form": form})
     return render(request, "network/create_post.html", {"form": NewPost()})

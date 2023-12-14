@@ -2,12 +2,13 @@
 
 {% block body %}
 
-
+<!--
 <div>
     <h3>New Post</h3>
     <textarea name="" id="" cols="100" rows="5"> Show text area from the form in views {{ form }} </textarea>
     <button type="submit" id="addpost" class="btn btn-primary">Post</button>
-  </div>
+</div>
+-->
 
 <!--
   <form action="{% url 'network:create' %}" method="post">
@@ -23,8 +24,9 @@
     {% for post in posts %}
     <div style="border: 1px solid beige;">
         <li>{{ post.post }}</li>
-        <li>{{ post.created_by }}</li>
-        <li>{{ post.created_date }}</li>
+        <li>{{ post.created_by }} wrote</li>
+        <li>On: {{ post.created_date }}</li>
+        <li>Likes: {{ post.likes.count }}</li>
     </div>
     {% endfor %}
 </ul>
