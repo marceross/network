@@ -1,12 +1,12 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 
 from django import forms
 
-from .models import User, Post
+from .models import User, Post, UserProfile
 from django.contrib.auth.decorators import login_required
 
 
@@ -96,3 +96,124 @@ def create_post(request):
         else:
             return render(request, "network/create_post.html", {"form": form})
     return render(request, "network/create_post.html", {"form": NewPost()})
+
+'''def profile(request, username):
+    profile = UserProfile.objects.get(user=username)
+    return render(request, 'network/profile.html', {'profile': profile})'''
+
+
+'''class UserProfileView(LoginRequiredMixin, ListView):
+    model = Post  # Using the Post model for the ListView, change this if needed
+    template_name = 'profile.html'
+    context_object_name = 'posts'
+    ordering = ['-created_date']  # Display posts in reverse chronological order
+
+    def get_queryset(self):
+        # Get the user's own posts
+        return Post.objects.filter(created_by=self.request.user)
+
+    def get_context_data(self):
+        context = super().get_context_data()
+        # Get the user's profile
+        user_profile = UserProfile.objects.get(user=self.request.user)
+        context['user_profile'] = user_profile
+        return context'''
+    
+@login_required
+def user_profile_view(request, username):
+    user = get_object_or_404(User, username=username)
+    user_profile = UserProfile.objects.get(user=user)
+    posts = Post.objects.filter(created_by=user).order_by('-created_date')
+    
+    context = {
+        'user_profile': user_profile,
+        'posts': posts,
+    }
+
+    return render(request, 'network/profile.html', context)
+
+
+
+    
+
+    
+'''def following(request, username):
+
+    following_profiles = UserProfile.objects.get(user=username).following.all()
+
+    # Get posts from the users that the current user is following
+    posts = Post.objects.filter(user__in=following_profiles).order_by('-timestamp')
+
+    return render(request, 'network/following.html', {'posts': posts})
+'''
+
+
+'''https://docs.djangoproject.com/en/5.0/ref/class-based-views/generic-display/
+Excellent, able to add pagination later
+https://docs.djangoproject.com/en/5.0/topics/pagination/#paginating-a-list-view'''
+
+
+'''@login_required
+class FollowingPostsView(ListView):
+    model = Post
+    template_name = 'following.html'
+    context_object_name = 'posts'
+
+    def get_queryset(self):
+        # Get the current user's profile
+        user_profile = UserProfile.objects.get(user=self.request.user)
+
+        # Get the posts of users that the current user follows
+        following_users = user_profile.following_users.all()
+        return Post.objects.filter(created_by__in=following_users).order_by('-created_date')'''
+    
+
+'''@login_required
+def following_posts_view(request, username):
+    # Get or create the current user's profile
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    # Assuming you want to filter posts based on the specified username
+    following_user = User.objects.get(username=username)
+    following_users = user_profile.following_users.all()
+    
+    if following_user in following_users:
+        posts = Post.objects.filter(created_by=following_user).order_by('-created_date')
+    else:
+        posts = []
+
+    context = {'posts': posts, 'following_user': following_user}
+    return render(request, 'following.html', context)'''
+
+
+@login_required
+def following_posts(request):
+    # Get the current user's profile
+    user_profile = UserProfile.objects.get(user=request.user)
+
+    # Get the list of users that the current user follows
+    following_users = user_profile.following_users.all()
+
+    # Get the posts made by the users that the current user follows
+    posts = Post.objects.filter(created_by__in=following_users).order_by("-created_date")
+
+    return render(request, 'network/following.html', {'posts': posts})
+
+
+
+def follow(request):
+    try:
+        followed = True if (request.user.is_authenticated and
+                UserProfile.followers.filter(pk=request.user.id).first()) else False
+
+        if request.POST.get('add_follow'):
+            if not followed:
+                UserProfile.followers.add(request.user)
+            else:
+                UserProfile.followers.remove(request.user)
+            followed = not followed
+    
+    except UserProfile.DoesNotExist:
+        raise Http404("Listing not found.")
+
+

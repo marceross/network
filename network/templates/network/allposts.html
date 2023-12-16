@@ -20,14 +20,18 @@
 
 
 <h2>All Posts</h2>
-<ul>
+<ul style="list-style-type: none;">
     {% for post in posts %}
-    <div style="border: 1px solid beige;">
+    <div style="border: 1px solid beige; margin:10px; padding: 10px">
+        <li><a href="{% url 'network:profile' request.user.username %}" style="text-decoration: none;"><strong>{{ post.created_by }}</strong></a></li>
         <li>{{ post.post }}</li>
-        <li>{{ post.created_by }} wrote</li>
-        <li>On: {{ post.created_date }}</li>
-        <li>Likes: {{ post.likes.count }}</li>
+        <li style="font-size: 70%;">Edit</li>
+        <li>{{ post.created_date }}</li>
+        <li>❤️ {{ post.likes.count }}</li>
     </div>
     {% endfor %}
 </ul>
 {% endblock %}
+
+
+<!--{% url 'network:profile' request.post.created_by %}-->
