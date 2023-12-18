@@ -25,13 +25,28 @@
     <div style="border: 1px solid beige; margin:10px; padding: 10px">
         <li><a href="{% url 'network:profile' request.user.username %}" style="text-decoration: none;"><strong>{{ post.created_by }}</strong></a></li>
         <li>{{ post.post }}</li>
-        <li style="font-size: 70%;">Edit</li>
+        <li style="font-size: 70%;"><a href="#">Edit post</a></li>
         <li>{{ post.created_date }}</li>
-        <li>❤️ {{ post.likes.count }}</li>
+        <li>❤️ {{ post.likes.count }}<a href="#"> like</a></li>
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" name="add_follow" value="1" class="btn btn-info mt-2 ml-2">
+                {% if not followed %}
+                    Follow
+                {% else %}
+                    Unfollow
+                {% endif %}
+            </button>
+        </form>
+        <p>Followers: {{ user_profile.followers.count }}</p>
+        <p>Following: {{ user_profile.following_users.count }}<br>JUST FOR CHECKING IF BUTTON WORKS... THIS INFO GOES IN PROFILE</p>
     </div>
     {% endfor %}
 </ul>
 {% endblock %}
 
+
+
+<!--<li style="font-size: 70%;"><a href="{% url 'network:edit' %}">Edit post</a></li>-->
 
 <!--{% url 'network:profile' request.post.created_by %}-->

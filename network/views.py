@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.http import HttpResponse, HttpResponseRedirect, Http404, JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 
@@ -8,6 +8,9 @@ from django import forms
 
 from .models import User, Post, UserProfile
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+
+from django.core.serializers import serialize
 
 
 class NewPost(forms.ModelForm):
@@ -82,6 +85,15 @@ def register(request):
 
 def all_posts(request):
     posts = Post.objects.order_by("-created_date").all()
+    user_profile = UserProfile.objects.get(user=request.user)
+    followed = True if (request.user.is_authenticated and
+    user_profile.followers.filter(pk=request.user.id).first()) else False
+    if request.POST.get('add_follow'):
+        if not followed:
+            user_profile.followers.add(request.user)
+        else:
+            user_profile.followers.remove(request.user)
+        followed = not followed
     return render(request, 'network/allposts.html', {'posts': posts})
 
 @login_required
@@ -96,6 +108,50 @@ def create_post(request):
         else:
             return render(request, "network/create_post.html", {"form": form})
     return render(request, "network/create_post.html", {"form": NewPost()})
+
+
+@login_required
+def edit_post(request, post_id):
+    if request.method== "POST":
+        edit = NewPost(request.POST)
+        if edit.is_valid():
+            post = edit.save(commit=False)
+            post = edit.cleaned_data["post"]
+            post.save()
+            #return all_posts(request, post_id)
+            return  HttpResponseRedirect(reverse("network:allposts"))
+    else:
+        edit = NewPost({"post": Post.objects(post_id)})
+        return render(request, "encyclopedia/create_post.html", {"form": edit, "post": post_id})
+
+
+
+@login_required
+def following_posts(request):
+    # Get the current user's profile
+    user_profile = UserProfile.objects.get(user=request.user)
+
+    # Get the list of users that the current user follows
+    following_users = user_profile.following_users.all()
+
+    # Get the posts made by the users that the current user follows
+    posts = Post.objects.filter(created_by__in=following_users).order_by("-created_date")
+
+    return render(request, 'network/following.html', {'posts': posts})
+
+
+
+@require_POST
+def like_post(post_id):
+    post = get_object_or_404(Post, id=post_id)
+    post.likes += 1
+    post.save()
+    
+    # Serialize the updated post data
+    post_data = serialize('json', [post])
+    return HttpResponse(post_data, content_type='application/json')
+
+
 
 '''def profile(request, username):
     profile = UserProfile.objects.get(user=username)
@@ -119,7 +175,6 @@ def create_post(request):
         context['user_profile'] = user_profile
         return context'''
     
-@login_required
 def user_profile_view(request, username):
     user = get_object_or_404(User, username=username)
     user_profile = UserProfile.objects.get(user=user)
@@ -203,17 +258,19 @@ def following_posts(request):
 
 def follow(request):
     try:
-        followed = True if (request.user.is_authenticated and
-                UserProfile.followers.filter(pk=request.user.id).first()) else False
+        user_profile = get_object_or_404(UserProfile, user=request.user)
+
+        followed = user_profile.followers.filter(pk=request.user.id).exists()
 
         if request.POST.get('add_follow'):
             if not followed:
-                UserProfile.followers.add(request.user)
+                user_profile.followers.add(request.user)
             else:
-                UserProfile.followers.remove(request.user)
+                user_profile.followers.remove(request.user)
             followed = not followed
-    
-    except UserProfile.DoesNotExist:
-        raise Http404("Listing not found.")
 
+        user_profile.save()
+
+    except UserProfile.DoesNotExist:
+        raise Http404("UserProfile not found.")
 
