@@ -23,29 +23,66 @@
 <ul style="list-style-type: none;">
     {% for post in posts %}
     <div style="border: 1px solid beige; margin:10px; padding: 10px">
-        <li><a href="{% url 'network:profile' request.user.username %}" style="text-decoration: none;"><strong>{{ post.created_by }}</strong></a></li>
+        <div style="display: flex; align-items: center;">
+
+            <!-- Name -->
+            <li style="margin-right: 10px;">
+                <a href="{% url 'network:profile' username=post.created_by.username %}" style="text-decoration: none;">
+                    <strong>{{ post.created_by }}</strong>
+                </a>
+            </li>
+        
+            <!-- Follow Button -->
+            <li>
+                <form method="POST" action="{% url 'network:follow_toggle' %}" id="follow-form-{{ post.id }}" class="follow-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="posted_by" value="{{ post.created_by }}">
+                    <button type="submit" class="btn {% if post.is_following %}btn-danger{% else %}btn-info{% endif %} mt-2 ml-2">
+                        {% if not post.is_following %}
+                            Follow
+                        {% else %}
+                            Unfollow
+                        {% endif %}
+                    </button>
+                </form>
+            </li>
+        
+        </div>
+        
         <li>{{ post.post }}</li>
-        <li style="font-size: 70%;"><a href="#">Edit post</a></li>
+
+        {% if user.is_authenticated %}
+            {% if user_profile.user|lower == post.created_by.username|lower %}
+            <ul style="display: flex;">
+                <li style="font-size: 70%;"><a href="{% url 'network:edit' post.id %}">Edit post</a></li>
+            </ul>    
+            {% endif %}
+        {% endif %}
+
+    
         <li>{{ post.created_date }}</li>
-        <li>❤️ {{ post.likes.count }}<a href="#"> like</a></li>
-        <form method="POST">
+        <li>❤️ {{ post.likes.count }} </li>
+        <form method="post" action="{% url 'network:like_post' post_id=post.id %}">
             {% csrf_token %}
-            <button type="submit" name="add_follow" value="1" class="btn btn-info mt-2 ml-2">
-                {% if not followed %}
-                    Follow
+            <button type="submit">
+                {% if user in post.likes.all %}
+                    Unlike
                 {% else %}
-                    Unfollow
+                    Like
                 {% endif %}
             </button>
         </form>
-        <p>Followers: {{ user_profile.followers.count }}</p>
-        <p>Following: {{ user_profile.following_users.count }}<br>JUST FOR CHECKING IF BUTTON WORKS... THIS INFO GOES IN PROFILE</p>
+
     </div>
     {% endfor %}
 </ul>
 {% endblock %}
 
 
+
+<!--<li style="font-size: 70%;"><a href="{% url 'network:edit' %}">Edit post</a></li>-->
+
+<!--{% url 'network:profile' request.post.created_by %}-->
 
 <!--<li style="font-size: 70%;"><a href="{% url 'network:edit' %}">Edit post</a></li>-->
 

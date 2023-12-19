@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect, Http404, JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponseRedirect, Http404
+from django.shortcuts import render, get_object_or_404,redirect
 from django.urls import reverse
 
 from django import forms
@@ -81,20 +81,26 @@ def register(request):
         return HttpResponseRedirect(reverse("network:index"))
     else:
         return render(request, "network/register.html")
-
-
+    
+is_following = False
 def all_posts(request):
-    posts = Post.objects.order_by("-created_date").all()
-    user_profile = UserProfile.objects.get(user=request.user)
-    followed = True if (request.user.is_authenticated and
-    user_profile.followers.filter(pk=request.user.id).first()) else False
-    if request.POST.get('add_follow'):
-        if not followed:
-            user_profile.followers.add(request.user)
-        else:
-            user_profile.followers.remove(request.user)
-        followed = not followed
-    return render(request, 'network/allposts.html', {'posts': posts})
+
+    try:
+        posts = Post.objects.order_by("-created_date").all()
+
+        if request.user.is_authenticated:
+            user_profile = UserProfile.objects.get_or_create(user=request.user)[0]
+
+            for post in posts:
+                post.is_following = user_profile.following_users.filter(username=post.created_by.username).exists()
+
+                    
+        return render(request, 'network/allposts.html', {'posts': posts, 'user_profile': user_profile, 'is_following': is_following})
+
+    except Exception as e:
+        print(f"Exception in all_posts view: {e}")
+        return render(request, 'network/allposts.html', {'posts': posts})
+
 
 @login_required
 def create_post(request):
@@ -112,20 +118,18 @@ def create_post(request):
 
 @login_required
 def edit_post(request, post_id):
-    if request.method== "POST":
-        edit = NewPost(request.POST)
+    post = get_object_or_404(Post, pk=post_id)
+
+    if request.method == "POST":
+        edit = NewPost(request.POST, instance=post)
         if edit.is_valid():
-            post = edit.save(commit=False)
-            post = edit.cleaned_data["post"]
-            post.save()
-            #return all_posts(request, post_id)
-            return  HttpResponseRedirect(reverse("network:allposts"))
+            edited_post = edit.save(commit=False)
+            edited_post.save()
+            return HttpResponseRedirect(reverse("network:allposts"))
     else:
-        edit = NewPost({"post": Post.objects(post_id)})
-        return render(request, "encyclopedia/create_post.html", {"form": edit, "post": post_id})
-
-
-
+        edit = NewPost(instance=post)
+        return render(request, "network/create_post.html", {"form": edit, "post": post})
+    
 @login_required
 def following_posts(request):
     # Get the current user's profile
@@ -142,14 +146,27 @@ def following_posts(request):
 
 
 @require_POST
-def like_post(post_id):
-    post = get_object_or_404(Post, id=post_id)
-    post.likes += 1
-    post.save()
-    
-    # Serialize the updated post data
-    post_data = serialize('json', [post])
-    return HttpResponse(post_data, content_type='application/json')
+def like_post(request, post_id):
+    user = request.user  
+    if user.is_authenticated:
+        post = get_object_or_404(Post, id=post_id)
+
+        # Check if the user has already liked the post
+        if user in post.likes.all():
+            # User has already liked the post, handle this as needed
+            post.likes.remove(user)
+            return redirect('network:allposts')
+
+        # Increment the like count and add the user to the likes
+        post.likes.add(user)
+        post.save()
+
+        # Serialize the updated post data
+        post_data = serialize('json', [post])
+        return redirect('network:allposts')
+    else:
+        return redirect('network:allposts')
+
 
 
 
@@ -255,22 +272,18 @@ def following_posts(request):
     return render(request, 'network/following.html', {'posts': posts})
 
 
+def follow_toggle(request):
+    posted_by = request.POST.get('posted_by')
 
-def follow(request):
-    try:
-        user_profile = get_object_or_404(UserProfile, user=request.user)
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    to_follow_user, created = User.objects.get_or_create(username=posted_by)
+    to_follow_profile, created = UserProfile.objects.get_or_create(user=to_follow_user)
 
-        followed = user_profile.followers.filter(pk=request.user.id).exists()
+    if user_profile.following_users.filter(username=posted_by).exists():
+        user_profile.following_users.remove(to_follow_user)
+        to_follow_profile.followers.remove(request.user)
+    else:
+        user_profile.following_users.add(to_follow_user)
+        to_follow_profile.followers.add(request.user)
 
-        if request.POST.get('add_follow'):
-            if not followed:
-                user_profile.followers.add(request.user)
-            else:
-                user_profile.followers.remove(request.user)
-            followed = not followed
-
-        user_profile.save()
-
-    except UserProfile.DoesNotExist:
-        raise Http404("UserProfile not found.")
-
+    return redirect('network:allposts')    
