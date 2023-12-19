@@ -1,8 +1,7 @@
 {% extends "network/layout.html" %}
 
-
 {% block body %}
-<h1>{{ user.username }}'s Profile</h1>
+<h1>{{ username }}'s Profile</h1>
 <p>Followers: {{ user_profile.followers.count }}</p>
 <p>Following: {{ user_profile.following_users.count }}</p>
 
@@ -11,9 +10,10 @@
     <p>{{ post }}</p>
 {% endfor %}
 
-<form method="POST">
+<form method="POST" action="{% url 'network:follow_profile' %}">
     {% csrf_token %}
-    <button type="submit" name="add_follow" value="1" class="btn btn-info btn-sm mt-2 ml-2">
+    <input type="hidden" name="posted_by" value="{{ username }}">
+    <button type="submit" name="add_follow" value="1" class="btn {% if followed %}btn-danger{% else %}btn-info{% endif %} mt-2 ml-2">
         {% if not followed %}
             Follow
         {% else %}
@@ -21,6 +21,5 @@
         {% endif %}
     </button>
 </form>
-
 
 {% endblock %}

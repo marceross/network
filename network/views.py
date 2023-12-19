@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404,redirect
 from django.urls import reverse
 
@@ -12,6 +12,7 @@ from django.views.decorators.http import require_POST
 
 from django.core.serializers import serialize
 
+from django.core.paginator import Paginator
 
 class NewPost(forms.ModelForm):
     class Meta:
@@ -81,25 +82,37 @@ def register(request):
         return HttpResponseRedirect(reverse("network:index"))
     else:
         return render(request, "network/register.html")
-    
+
+''' 
 is_following = False
 def all_posts(request):
 
     try:
         posts = Post.objects.order_by("-created_date").all()
-
         if request.user.is_authenticated:
             user_profile = UserProfile.objects.get_or_create(user=request.user)[0]
 
             for post in posts:
                 post.is_following = user_profile.following_users.filter(username=post.created_by.username).exists()
-
                     
         return render(request, 'network/allposts.html', {'posts': posts, 'user_profile': user_profile, 'is_following': is_following})
 
     except Exception as e:
         print(f"Exception in all_posts view: {e}")
         return render(request, 'network/allposts.html', {'posts': posts})
+'''
+
+def all_posts(request):
+    posts = Post.objects.all().order_by('-created_date')
+    paginator = Paginator(posts, 5)
+    if request.GET.get("page") != None:
+        try:
+            posts = paginator.page(request.GET.get("page"))
+        except:
+            posts = paginator.page(1)
+    else:
+        posts = paginator.page(1)
+    return render(request, 'network/allposts.html', {'posts': posts})
 
 
 @login_required
@@ -193,16 +206,24 @@ def like_post(request, post_id):
         return context'''
     
 def user_profile_view(request, username):
-    user = get_object_or_404(User, username=username)
-    user_profile = UserProfile.objects.get(user=user)
-    posts = Post.objects.filter(created_by=user).order_by('-created_date')
-    
-    context = {
-        'user_profile': user_profile,
-        'posts': posts,
-    }
+    if(request.user.is_authenticated):
+        user = get_object_or_404(User, username=username)
+        user_profile = UserProfile.objects.get(user=user)
+        posts = Post.objects.filter(created_by=user).order_by('-created_date')
+        current_profile = UserProfile.objects.get(user=request.user)
+        followed = current_profile.following_users.filter(username=username).exists()
+        print(followed)
+        context = {
+            'username':username,
+            'user_profile': user_profile,
+            'posts': posts,
+            'followed': followed,
+        }
 
-    return render(request, 'network/profile.html', context)
+        return render(request, 'network/profile.html', context)
+    else:
+        login_url = reverse('network:login')
+        return redirect(login_url)
 
 
 
@@ -272,6 +293,28 @@ def following_posts(request):
     return render(request, 'network/following.html', {'posts': posts})
 
 
+'''
+def follow(request):
+    try:
+        user_profile = get_object_or_404(UserProfile, user=request.user)
+
+        followed = user_profile.followers.filter(pk=request.user.id).exists()
+
+        if request.POST.get('add_follow'):
+            if not followed:
+                user_profile.followers.add(request.user)
+            else:
+                user_profile.followers.remove(request.user)
+            followed = not followed
+
+        user_profile.save()
+
+    except UserProfile.DoesNotExist:
+        raise Http404("UserProfile not found.")
+'''
+    
+
+'''
 def follow_toggle(request):
     posted_by = request.POST.get('posted_by')
 
@@ -286,4 +329,26 @@ def follow_toggle(request):
         user_profile.following_users.add(to_follow_user)
         to_follow_profile.followers.add(request.user)
 
-    return redirect('network:allposts')    
+    return redirect('network:allposts')
+'''   
+
+
+@login_required
+def follow_profile(request):
+    if request.method == 'POST':
+        posted_by = request.POST.get('posted_by')
+
+        user_profile = get_object_or_404(UserProfile, user=request.user)
+        to_follow_user, created = User.objects.get_or_create(username=posted_by)
+        to_follow_profile, created = UserProfile.objects.get_or_create(user=to_follow_user)
+
+        if user_profile.following_users.filter(username=posted_by).exists():
+            user_profile.following_users.remove(to_follow_user)
+            to_follow_profile.followers.remove(request.user)
+        else:
+            user_profile.following_users.add(to_follow_user)
+            to_follow_profile.followers.add(request.user)
+
+        return redirect('network:profile', username=posted_by)
+
+    return redirect('network:allposts')

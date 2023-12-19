@@ -32,12 +32,12 @@
                 </a>
             </li>
         
-            <!-- Follow Button -->
+            <!-- Follow Button
             <li>
-                <form method="POST" action="{% url 'network:follow_toggle' %}" id="follow-form-{{ post.id }}" class="follow-form">
+
                     {% csrf_token %}
                     <input type="hidden" name="posted_by" value="{{ post.created_by }}">
-                    <button type="submit" class="btn {% if post.is_following %}btn-danger{% else %}btn-info{% endif %} mt-2 ml-2">
+                    <button type="submit" class="btn REMOVED FIND IT AT THE BOTTOM mt-2 ml-2">
                         {% if not post.is_following %}
                             Follow
                         {% else %}
@@ -45,7 +45,7 @@
                         {% endif %}
                     </button>
                 </form>
-            </li>
+            </li>-->
         
         </div>
         
@@ -75,6 +75,49 @@
 
     </div>
     {% endfor %}
+    <div class="d-flex justify-content-center my-3">
+        <nav aria-label="Page navigation">
+            <ul class="pagination pagination-lg">
+                {% if posts.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ posts.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                            <span class="sr-only">Previous</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                            <span class="sr-only">Previous</span>
+                        </a>
+                    </li>
+                {% endif %}
+    
+                {% for i in posts.paginator.page_range %}
+                    <li class="page-item {% if i == posts.number %}active{% endif %}">
+                        <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                    </li>
+                {% endfor %}
+    
+                {% if posts.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ posts.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                            <span class="sr-only">Next</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                            <span class="sr-only">Next</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
 </ul>
 {% endblock %}
 
@@ -87,3 +130,5 @@
 <!--<li style="font-size: 70%;"><a href="{% url 'network:edit' %}">Edit post</a></li>-->
 
 <!--{% url 'network:profile' request.post.created_by %}-->
+
+<!--<form method="POST" action="{% url 'network:follow_toggle' %}" id="follow-form-{{ post.id }}" class="follow-form">-->
