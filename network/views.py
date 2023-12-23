@@ -86,7 +86,7 @@ def register(request):
 
 def all_posts(request):
     posts = Post.objects.all().order_by('-created_date')
-    paginator = Paginator(posts, 5)
+    paginator = Paginator(posts, 10)
     if request.GET.get("page") != None:
         try:
             posts = paginator.page(request.GET.get("page"))
@@ -168,7 +168,7 @@ def user_profile_view(request, username):
         user_profile = UserProfile.objects.get(user=user)
         posts = Post.objects.filter(created_by=user).order_by('-created_date')
 
-        paginator = Paginator(posts, 2)
+        paginator = Paginator(posts, 10)
         if request.GET.get("page") != None:
             try:
                 posts = paginator.page(request.GET.get("page"))
@@ -206,7 +206,7 @@ def following_posts(request):
     # Get the posts made by the users that the current user follows
     posts = Post.objects.filter(created_by__in=following_users).order_by("-created_date")
 
-    paginator = Paginator(posts, 2)
+    paginator = Paginator(posts, 10)
     if request.GET.get("page") != None:
         try:
             posts = paginator.page(request.GET.get("page"))

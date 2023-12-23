@@ -15,26 +15,11 @@
                     <strong>{{ post.created_by }}</strong>
                 </a>
             </li>
-
-            <!-- Follow Button -->
-            <li>
-
-                {% csrf_token %}
-                <input type="hidden" name="posted_by" value="{{ post.created_by }}">
-                <button type="submit" class="btn mt-2 ml-2">
-                    {% if not post.is_following %}
-                        Follow
-                    {% else %}
-                        Unfollow
-                    {% endif %}
-                </button>
-            </form>
-            </li>
-        
         </div>
 <!-- href="{% url 'network:edit' post.id %} " -->
 
         <li>{{ post.post }}</li>
+        <li  style="margin-top: 5px; font-size: small">{{ post.created_date }}</li>
 
         {% if user.is_authenticated and user.username|lower == post.created_by.username|lower %}
         <form action="{% url 'network:edit' post.id %}" method="post" class="fetch-form">
