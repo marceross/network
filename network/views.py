@@ -167,6 +167,18 @@ def user_profile_view(request, username):
         user = get_object_or_404(User, username=username)
         user_profile = UserProfile.objects.get(user=user)
         posts = Post.objects.filter(created_by=user).order_by('-created_date')
+
+        paginator = Paginator(posts, 2)
+        if request.GET.get("page") != None:
+            try:
+                posts = paginator.page(request.GET.get("page"))
+            except:
+                posts = paginator.page(1)
+        else:
+            posts = paginator.page(1)
+
+
+
         current_profile = UserProfile.objects.get(user=request.user)
         followed = current_profile.following_users.filter(username=username).exists()
         print(followed)
@@ -193,6 +205,15 @@ def following_posts(request):
 
     # Get the posts made by the users that the current user follows
     posts = Post.objects.filter(created_by__in=following_users).order_by("-created_date")
+
+    paginator = Paginator(posts, 2)
+    if request.GET.get("page") != None:
+        try:
+            posts = paginator.page(request.GET.get("page"))
+        except:
+            posts = paginator.page(1)
+    else:
+        posts = paginator.page(1)
 
     return render(request, 'network/following.html', {'posts': posts})
 
